@@ -3,7 +3,7 @@ from models import FeatureVectorChurn
 from dataset import read_csv, validate_rows, DATA_PATH
 from collections import Counter
 from preprocessing import prepare_data, data_distribution, data_split
-
+from model import train_churn_model, evaluate_model
 
 app = FastAPI()
 rows = read_csv(DATA_PATH)
@@ -43,3 +43,17 @@ def split_info():
         "train_churn_distribution": distribution["train"],
         "test_churn_distribution": distribution["test"]
     }
+
+
+@app.post("/model/train")
+def train_model():
+    if not rows:
+        raise HTTPException(400, "No data found")
+    else:
+        x, y = prepare_data(validate_rows(rows))
+        x_train, x_test, y_train, y_test = data_split(x, y)
+        train_m = train_churn_model(x_train, y_train)
+        return evaluate_model(train_m, x_test, y_test)
+
+
+

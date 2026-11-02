@@ -1,6 +1,6 @@
 from collections import Counter
-
 from sklearn.model_selection import train_test_split
+
 NUMERIC_FEATURES = [
     "monthly_fee",
     "usage_hours",
