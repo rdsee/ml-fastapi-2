@@ -1,6 +1,6 @@
 import csv
 from pathlib import Path
-from models import DatasetRowChurn
+from pydantic_models import DatasetRowChurn
 
 DATA_PATH = Path(__file__).parent/"data"/"churn_dataset.csv"
 

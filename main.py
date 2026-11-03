@@ -1,12 +1,14 @@
+import datetime
 from fastapi import FastAPI, HTTPException
-from models import FeatureVectorChurn
+from pydantic_models import FeatureVectorChurn
 from dataset import read_csv, validate_rows, DATA_PATH
 from collections import Counter
 from preprocessing import prepare_data, data_distribution, data_split
-from model import train_churn_model, evaluate_model
+from model import train_churn_model, evaluate_model, save_churn_model, load_churn_model, MODEL_PATH
 
 app = FastAPI()
 rows = read_csv(DATA_PATH)
+model_info = load_churn_model()
 
 @app.get("/")
 def read_root():
@@ -47,13 +49,33 @@ def split_info():
 
 @app.post("/model/train")
 def train_model():
+    global model_info
     if not rows:
         raise HTTPException(400, "No data found")
     else:
         x, y = prepare_data(validate_rows(rows))
         x_train, x_test, y_train, y_test = data_split(x, y)
         train_m = train_churn_model(x_train, y_train)
-        return evaluate_model(train_m, x_test, y_test)
+        info = {
+            "model": train_m,
+            "time": datetime.datetime.now().isoformat(),
+            "metrics": evaluate_model(train_m, x_test, y_test),
+        }
+        save_churn_model(info)
+        model_info = info
+        return info["metrics"]
+
+@app.get("/model/status")
+def model_status():
+    if model_info is None:
+        return {"trained": False}
+    else:
+        return {
+            "trained": True,
+            "time": model_info["time"],
+            "metrics": model_info["metrics"]
+        }
+
 
 
 

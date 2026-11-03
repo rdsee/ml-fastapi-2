@@ -5,7 +5,8 @@ from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, f1_score
-
+import joblib
+from pathlib import Path
 
 
 def train_churn_model(x_train, y_train):
@@ -32,4 +33,18 @@ def evaluate_model(model, x_test, y_test):
         "accuracy": accuracy,
         "f1": f1,
     }
+
+MODEL_PATH = Path(__file__).parent/"artifacts"/"churn_model.joblib"
+
+def save_churn_model(info, path=MODEL_PATH):
+    path.parent.mkdir(exist_ok=True)
+    joblib.dump(info, path)
+
+def load_churn_model(path=MODEL_PATH):
+    try:
+        return joblib.load(path)
+    except FileNotFoundError:
+        return None
+
+
 
