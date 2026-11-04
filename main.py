@@ -1,29 +1,54 @@
 import datetime
 from fastapi import FastAPI, HTTPException
-from pydantic_models import FeatureVectorChurn
+from pydantic_models import FeatureVectorChurn, PredictionResponseChurn
 from dataset import read_csv, validate_rows, DATA_PATH
 from collections import Counter
 from preprocessing import prepare_data, data_distribution, data_split
-from model import train_churn_model, evaluate_model, save_churn_model, load_churn_model, MODEL_PATH
+from model import train_churn_model, evaluate_model, save_churn_model, load_churn_model
+import pandas as pd
+
 
 app = FastAPI()
 rows = read_csv(DATA_PATH)
 model_info = load_churn_model()
 
+
 @app.get("/")
 def read_root():
-    return {"message": "ml churn service is running"}
+    return {
+        "message": "ml churn service is running"
+    }
 
 
-@app.post("/predict")
-def predict(features: FeatureVectorChurn):
-    return features
+@app.post("/predict", response_model=list[PredictionResponseChurn])
+def predict(features: FeatureVectorChurn | list[FeatureVectorChurn]):
+    if not isinstance(features, list):
+        features = [features]
+    table = pd.DataFrame([client.model_dump() for client in features])
+
+    if model_info is None:
+        raise HTTPException(503, "Model is not trained yet. Call POST /model/train first")
+
+    model = model_info["model"]
+    prediction = model.predict(table)
+    predict_proba = model.predict_proba(table)
+    result = []
+    for i in range(len(features)):
+        item = PredictionResponseChurn(
+            churn=int(prediction[i]),
+            probability_stay=float(predict_proba[i][0]),
+            probability_churn=float(predict_proba[i][1])
+        )
+        result.append(item)
+    return result
+
 
 @app.get("/dataset/preview")
 def preview(n: int = 5):
     if n < 1:
         raise HTTPException(400, "n must be greater than 0")
     return validate_rows(rows)[:n]
+
 
 @app.get("/dataset/info")
 def dataset_info():
@@ -33,6 +58,7 @@ def dataset_info():
         "column_names": list(rows[0].keys()),
         "churn_distribution": Counter(row["churn"] for row in rows)
     }
+
 
 @app.get("/dataset/split-info")
 def split_info():
@@ -64,6 +90,7 @@ def train_model():
         save_churn_model(info)
         model_info = info
         return info["metrics"]
+
 
 @app.get("/model/status")
 def model_status():
