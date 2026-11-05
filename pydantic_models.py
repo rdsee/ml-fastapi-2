@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel
 
 class FeatureVectorChurn(BaseModel):
@@ -57,3 +59,7 @@ class PredictionResponseChurn(BaseModel):
             ]
         }
     }
+
+class TrainingConfigChurn(BaseModel):
+    model_type: Literal["LogisticRegression", "RandomForestClassifier"]
+    hyperparameters: dict

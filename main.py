@@ -1,6 +1,6 @@
 import datetime
 from fastapi import FastAPI, HTTPException
-from pydantic_models import FeatureVectorChurn, PredictionResponseChurn
+from pydantic_models import FeatureVectorChurn, PredictionResponseChurn, TrainingConfigChurn
 from dataset import read_csv, validate_rows, DATA_PATH
 from collections import Counter
 from preprocessing import prepare_data, data_distribution, data_split
@@ -74,19 +74,28 @@ def split_info():
 
 
 @app.post("/model/train")
-def train_model():
+def train_model(config: TrainingConfigChurn):
     global model_info
+
     if not rows:
         raise HTTPException(400, "No data found")
     else:
         x, y = prepare_data(validate_rows(rows))
         x_train, x_test, y_train, y_test = data_split(x, y)
-        train_m = train_churn_model(x_train, y_train)
+
+        try:
+            train_m = train_churn_model(x_train, y_train, config.model_type, config.hyperparameters)
+        except Exception as e:
+            raise HTTPException(400, f"Model training failed: {e}")
+
         info = {
             "model": train_m,
             "time": datetime.datetime.now().isoformat(),
             "metrics": evaluate_model(train_m, x_test, y_test),
+            "model_type": config.model_type,
+            "hyperparameters": config.hyperparameters,
         }
+
         save_churn_model(info)
         model_info = info
         return info["metrics"]
@@ -100,7 +109,9 @@ def model_status():
         return {
             "trained": True,
             "time": model_info["time"],
-            "metrics": model_info["metrics"]
+            "metrics": model_info["metrics"],
+            "model type": model_info["model_type"],
+            "hyperparameters": model_info["hyperparameters"],
         }
 
 

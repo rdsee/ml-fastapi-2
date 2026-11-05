@@ -4,21 +4,30 @@ from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, f1_score
 import joblib
 from pathlib import Path
 
 
-def train_churn_model(x_train, y_train):
+def train_churn_model(x_train, y_train, model_type, hyperparameters):
     x_train_table = pd.DataFrame(x_train)
     preprocessor = ColumnTransformer([
         ("num", StandardScaler(), NUMERIC_FEATURES),
         ("cat", OneHotEncoder(handle_unknown="ignore"), CATEGORICAL_FEATURES),
     ])
 
+    if model_type == "LogisticRegression":
+        estimator = LogisticRegression(**hyperparameters)
+    elif model_type == "RandomForestClassifier":
+        estimator = RandomForestClassifier(**hyperparameters)
+    else:
+        raise ValueError("model_type must be either 'LogisticRegression' or 'RandomForestClassifier'")
+
+
     model = Pipeline([
         ("preprocessor", preprocessor),
-        ("model", LogisticRegression(max_iter=1000))
+        ("model", estimator)
     ])
 
     model.fit(x_train_table, y_train)
