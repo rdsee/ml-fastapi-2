@@ -1,9 +1,11 @@
 import datetime
 from fastapi import FastAPI, HTTPException
+from pydantic_core.core_schema import model_field
+
 from pydantic_models import FeatureVectorChurn, PredictionResponseChurn, TrainingConfigChurn
 from dataset import read_csv, validate_rows, DATA_PATH
 from collections import Counter
-from preprocessing import prepare_data, data_distribution, data_split
+from preprocessing import prepare_data, data_distribution, data_split, NUMERIC_FEATURES, CATEGORICAL_FEATURES
 from model import train_churn_model, evaluate_model, save_churn_model, load_churn_model
 import pandas as pd
 
@@ -24,7 +26,9 @@ def read_root():
 def predict(features: FeatureVectorChurn | list[FeatureVectorChurn]):
     if not isinstance(features, list):
         features = [features]
+
     table = pd.DataFrame([client.model_dump() for client in features])
+    table = table[NUMERIC_FEATURES + CATEGORICAL_FEATURES]
 
     if model_info is None:
         raise HTTPException(503, "Model is not trained yet. Call POST /model/train first")
@@ -110,10 +114,19 @@ def model_status():
             "trained": True,
             "time": model_info["time"],
             "metrics": model_info["metrics"],
-            "model type": model_info["model_type"],
+            "model_type": model_info["model_type"],
             "hyperparameters": model_info["hyperparameters"],
         }
 
-
-
-
+@app.get("/model/schema")
+def model_schema():
+    return {
+        "numeric_features": {
+            feature: FeatureVectorChurn.model_fields[feature].annotation.__name__
+            for feature in NUMERIC_FEATURES
+        },
+        "categorical_features": {
+            feature: FeatureVectorChurn.model_fields[feature].annotation.__name__
+            for feature in CATEGORICAL_FEATURES
+        },
+    }
