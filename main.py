@@ -238,7 +238,7 @@ def model_metrics(n: int = 5, model_type: Literal["LogisticRegression", "RandomF
             if item["metrics"]["roc_auc"] > best["metrics"]["roc_auc"]:
                 best = item
 
-        worst = history[-1]
+        worst = history[0]
         for item in history:
             if item["metrics"]["roc_auc"] < worst["metrics"]["roc_auc"]:
                 worst = item
