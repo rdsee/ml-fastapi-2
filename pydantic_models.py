@@ -1,5 +1,4 @@
 from typing import Literal
-
 from pydantic import BaseModel
 
 class FeatureVectorChurn(BaseModel):
@@ -13,6 +12,7 @@ class FeatureVectorChurn(BaseModel):
     payment_method: str
     autopay_enabled: int
     model_config = {
+        "extra": "forbid",
         "json_schema_extra": {
             "examples": [
                 {
@@ -29,6 +29,7 @@ class FeatureVectorChurn(BaseModel):
             ]
         }
     }
+
 
 
 class DatasetRowChurn(BaseModel):
@@ -63,3 +64,11 @@ class PredictionResponseChurn(BaseModel):
 class TrainingConfigChurn(BaseModel):
     model_type: Literal["LogisticRegression", "RandomForestClassifier"]
     hyperparameters: dict
+
+
+class ErrorConfig(BaseModel):
+    code: str
+    message: str
+    details: list | None = None
+
+

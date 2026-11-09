@@ -5,7 +5,7 @@ from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, f1_score
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
 import joblib
 from pathlib import Path
 
@@ -36,11 +36,14 @@ def train_churn_model(x_train, y_train, model_type, hyperparameters):
 def evaluate_model(model, x_test, y_test):
     x_test_table = pd.DataFrame(x_test)
     predictions = model.predict(x_test_table)
+    predict_proba = model.predict_proba(x_test_table)
     accuracy = accuracy_score(y_test, predictions)
     f1 = f1_score(y_test, predictions)
+    roc_auc = roc_auc_score(y_test, predict_proba[:, -1])
     return {
         "accuracy": accuracy,
         "f1": f1,
+        "roc_auc": roc_auc,
     }
 
 MODEL_PATH = Path(__file__).parent/"artifacts"/"churn_model.joblib"
